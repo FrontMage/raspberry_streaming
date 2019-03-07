@@ -6,4 +6,3 @@ then
 fi
 
 mkfifo fifo264
-nc -l -v -p 5777 > fifo264
