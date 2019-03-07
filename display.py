@@ -1,4 +1,5 @@
 import os
+import pickle
 import time
 
 import face_recognition
@@ -11,9 +12,18 @@ cap = cv2.VideoCapture('./fifo264')
 KNOWN_FACES_DIR = './known_faces'
 KNOWN_FACES = os.listdir(KNOWN_FACES_DIR)
 
+KNOWN_FACES_ENCODINGS = './known_face_encodings.dat'
+KNOWN_FACES_NAMES = 'known_face_names.dat'
+
 # Create arrays of known face encodings and their names
 known_face_encodings = []
 known_face_names = []
+
+if os.path.isfile(''):
+    with open(KNOWN_FACES_ENCODINGS, 'rb') as f:
+      known_face_encodings = pickle.load(f)
+    with open(KNOWN_FACES_NAMES, 'rb') as f:
+      known_face_names = pickle.load(f)
 
 for name in KNOWN_FACES:
     path = os.path.join(KNOWN_FACES_DIR, name)
@@ -24,6 +34,11 @@ for name in KNOWN_FACES:
         for face_encoding in face_encodings:
             known_face_encodings.append(face_encoding)
             known_face_names.append(name)
+
+with open(KNOWN_FACES_ENCODINGS, 'wb') as f:
+    pickle.dump(known_face_encodings, f)
+with open(KNOWN_FACES_NAMES, 'wb') as f:
+    pickle.dump(known_face_names, f)
 
 # Initialize some variables
 face_locations = []
