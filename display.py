@@ -19,26 +19,26 @@ KNOWN_FACES_NAMES = 'known_face_names.dat'
 known_face_encodings = []
 known_face_names = []
 
-if os.path.isfile(''):
+if os.path.isfile(KNOWN_FACES_ENCODINGS) and os.path.isfile(KNOWN_FACES_NAMES):
     with open(KNOWN_FACES_ENCODINGS, 'rb') as f:
       known_face_encodings = pickle.load(f)
     with open(KNOWN_FACES_NAMES, 'rb') as f:
       known_face_names = pickle.load(f)
+else:
+    for name in KNOWN_FACES:
+        path = os.path.join(KNOWN_FACES_DIR, name)
+        faces = os.listdir(path)
+        for f in faces:
+            image = face_recognition.load_image_file(os.path.join(path, f))
+            face_encodings = face_recognition.face_encodings(image, num_jitters=100)
+            for face_encoding in face_encodings:
+                known_face_encodings.append(face_encoding)
+                known_face_names.append(name)
 
-for name in KNOWN_FACES:
-    path = os.path.join(KNOWN_FACES_DIR, name)
-    faces = os.listdir(path)
-    for f in faces:
-        image = face_recognition.load_image_file(os.path.join(path, f))
-        face_encodings = face_recognition.face_encodings(image, num_jitters=100)
-        for face_encoding in face_encodings:
-            known_face_encodings.append(face_encoding)
-            known_face_names.append(name)
-
-with open(KNOWN_FACES_ENCODINGS, 'wb') as f:
-    pickle.dump(known_face_encodings, f)
-with open(KNOWN_FACES_NAMES, 'wb') as f:
-    pickle.dump(known_face_names, f)
+    with open(KNOWN_FACES_ENCODINGS, 'wb') as f:
+        pickle.dump(known_face_encodings, f)
+    with open(KNOWN_FACES_NAMES, 'wb') as f:
+        pickle.dump(known_face_names, f)
 
 # Initialize some variables
 face_locations = []
@@ -59,7 +59,7 @@ while cap.isOpened():
     # Only process every other frame of video to save time
     if process_this_frame:
         # Find all the faces and face encodings in the current frame of video
-        face_locations = face_recognition.face_locations(rgb_small_frame)
+        face_locations = face_recognition.face_locations(rgb_small_frame, number_of_times_to_upsample=2, model="cnn")
         face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
 
         face_names = []
@@ -87,12 +87,26 @@ while cap.isOpened():
         left *= 4
 
         # Draw a box around the face
-        cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
+        width = int((right - left)/4)
+        height = int((top - bottom)/4)
+        line_color = (28, 99, 44)
+        alpha = 0.6
+        overlay = frame.copy()
+        cv2.line(overlay, (left, top), (left + width, top), line_color, 2)
+        cv2.line(overlay, (left, top), (left, top - height), line_color, 2)
+        cv2.line(overlay, (left, bottom), (left, bottom + height), line_color, 2)
+        cv2.line(overlay, (left, bottom), (left + width, bottom), line_color, 2)
+
+        cv2.line(overlay, (right, top), (right - width, top), line_color, 2)
+        cv2.line(overlay, (right, top), (right, top - height), line_color, 2)
+        cv2.line(overlay, (right, bottom), (right, bottom + height), line_color, 2)
+        cv2.line(overlay, (right, bottom), (right - width, bottom), line_color, 2)
 
         # Draw a label with a name below the face
-        cv2.rectangle(frame, (left, bottom - 35), (right, bottom), (0, 0, 255), cv2.FILLED)
+        cv2.rectangle(overlay, (left - 1, bottom + 38), (right + 1, bottom), line_color, cv2.FILLED)
         font = cv2.FONT_HERSHEY_DUPLEX
-        cv2.putText(frame, name, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
+        cv2.putText(overlay, name, (left + 6, bottom + 26), font, 1.0, (255, 255, 255), 1)
+        cv2.addWeighted(overlay, alpha, frame, 1 - alpha, 0, frame)
     cv2.imshow('frame', frame)
     if not ret:
         print(ret)
